@@ -11,7 +11,7 @@
       <div class="brand-block">
         <p class="eyebrow">UFC / Futbol / Basquetbol</p>
         <h1>Todo al Verde</h1>
-        <p class="subtitle">Carteleras, jornadas y cuotas agrupadas para revisar antes de apostar.</p>
+        <p class="subtitle">Eventos, cuotas historicas y señales estadisticas separadas por deporte.</p>
       </div>
       <button id="refreshButton" class="primary-button" type="button" title="Traer datos nuevos">
         <span class="button-icon" aria-hidden="true">R</span>
@@ -54,6 +54,27 @@
         </article>
       </section>
 
+      <section class="method-grid" aria-label="Estado de analisis y fuentes">
+        <article>
+          <span class="label">Disponible ahora</span>
+          <strong>Cuotas + movimiento</strong>
+          <p>La app calcula probabilidades implicitas y cambios usando snapshots guardados en Supabase.</p>
+        </article>
+        <article>
+          <span class="label">Para integrar</span>
+          <strong>Stats deportivas</strong>
+          <p>Tarjetas, corners, remates, metodos de victoria y box scores requieren API o scraper dedicado.</p>
+        </article>
+        <article>
+          <span class="label">Leyenda</span>
+          <div class="legend-row">
+            <span class="legend-dot green"></span> Favorable
+            <span class="legend-dot yellow"></span> Neutro
+            <span class="legend-dot red"></span> En contra
+          </div>
+        </article>
+      </section>
+
       <section class="controls">
         <div class="tabs" role="tablist" aria-label="Filtro de deporte">
           <button class="tab active" data-sport="all" type="button">Todos</button>
@@ -71,7 +92,7 @@
         <aside class="group-panel" aria-label="Carteleras y jornadas">
           <div class="panel-heading">
             <span class="label">Agrupado por dia</span>
-            <strong>Carteleras / jornadas</strong>
+            <strong>Eventos</strong>
           </div>
           <div id="groupsList" class="groups-list"></div>
           <div id="groupsEmpty" class="empty-state">

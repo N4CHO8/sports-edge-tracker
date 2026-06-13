@@ -35,6 +35,27 @@ const groupLabels = {
   basketball: "Jornada"
 };
 
+const sportAnalysisPlans = {
+  football: {
+    title: "Modelo futbol",
+    source: "Recomendado: API-Football/API-Sports",
+    prompt: "Ultimos 20 partidos oficiales por seleccion: 1X2 estimado, GF/GC, Over/Under 2.5, BTTS, corners, tarjetas, posesion, remates al arco, forma ultimos 5 y dato caliente.",
+    missing: ["Corners a favor/contra", "Tarjetas y arbitro", "Posesion", "Remates al arco", "BTTS historico"]
+  },
+  basketball: {
+    title: "Modelo basquetbol",
+    source: "Recomendado: nba_api o API-NBA",
+    prompt: "Ultimos 20 partidos: probabilidad estimada de victoria/derrota, puntos a favor/contra, pace, rating ofensivo/defensivo, triples, rebotes, perdidas, forma ultimos 5 y jugador caliente.",
+    missing: ["Box scores historicos", "Pace", "Ratings", "Jugadores disponibles", "Props por jugador"]
+  },
+  ufc: {
+    title: "Modelo UFC",
+    source: "Recomendado: UFCStats scraper",
+    prompt: "Ultimas peleas oficiales por peleador: probabilidad estimada, metodo de victoria/derrota, sumisiones, KO/TKO, decisiones, golpes significativos, derribos, defensa, forma y dato caliente.",
+    missing: ["Metodo de victoria", "Sumisiones", "KO/TKO", "Derribos", "Golpes significativos"]
+  }
+};
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -313,6 +334,28 @@ function renderMarketStats(event) {
   `;
 }
 
+function renderResearchPlan(event) {
+  const plan = sportAnalysisPlans[event.sport];
+  if (!plan) return "";
+
+  return `
+    <div class="research-panel">
+      <div class="research-head">
+        <div>
+          <span class="label">${escapeHtml(plan.title)}</span>
+          <strong>Informe avanzado</strong>
+        </div>
+        <span class="data-chip missing">Sin datos suficientes</span>
+      </div>
+      <p>${escapeHtml(plan.prompt)}</p>
+      <div class="research-foot">
+        <span>${escapeHtml(plan.source)}</span>
+        <span>Faltan: ${plan.missing.map(escapeHtml).join(", ")}</span>
+      </div>
+    </div>
+  `;
+}
+
 function renderEventDetail(event) {
   const bestOdd = getBestOdd(event);
   const signal = signalFor(bestOdd);
@@ -346,6 +389,7 @@ function renderEventDetail(event) {
         <summary>Ver casas de apuesta</summary>
         ${renderOddsTable(event)}
       </details>
+      ${renderResearchPlan(event)}
     </article>
   `;
 }

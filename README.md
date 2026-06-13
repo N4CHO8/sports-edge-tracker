@@ -7,6 +7,7 @@ Dashboard simple para actualizar manualmente datos reales de UFC, futbol y basqu
 - No tiene modo demo: si falta una variable de entorno, la app muestra el error.
 - Supabase esta configurado para el proyecto `todoalverde`.
 - No expone la `SUPABASE_SERVICE_ROLE_KEY` al navegador; solo la usan las funciones `/api/*`.
+- Las plantillas de analisis por deporte estan en `docs/analysis-prompts.md`.
 
 ## Variables de entorno
 
