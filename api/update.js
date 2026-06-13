@@ -12,8 +12,8 @@ function send(res, response, status = 200) {
   res.end(JSON.stringify(response));
 }
 
-function hasSupabaseEnv() {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+function missingEnvVars() {
+  return ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "ODDS_API_KEY"].filter((name) => !process.env[name]);
 }
 
 function normalizeSport(key) {
@@ -41,86 +41,7 @@ async function supabaseFetch(path, options = {}) {
   return response.status === 204 ? null : response.json();
 }
 
-function demoPayload(capturedAt) {
-  const now = Date.now();
-  const dateStamp = new Date().toISOString().slice(0, 10);
-  const ufcTime = now + 4 * 86400000;
-  const footballTime = now + 2 * 86400000;
-  const basketballTime = now + 86400000;
-  const events = [
-    {
-      source_event_id: `demo-ufc-main-${dateStamp}`,
-      sport: "ufc",
-      league: "UFC Fight Night",
-      home_name: "Peleador A",
-      away_name: "Peleador B",
-      start_time: new Date(ufcTime).toISOString(),
-      source: "demo"
-    },
-    {
-      source_event_id: `demo-ufc-co-main-${dateStamp}`,
-      sport: "ufc",
-      league: "UFC Fight Night",
-      home_name: "Peleador C",
-      away_name: "Peleador D",
-      start_time: new Date(ufcTime + 45 * 60000).toISOString(),
-      source: "demo"
-    },
-    {
-      source_event_id: `demo-football-1-${dateStamp}`,
-      sport: "football",
-      league: "Premier League",
-      home_name: "Equipo Local",
-      away_name: "Equipo Visita",
-      start_time: new Date(footballTime).toISOString(),
-      source: "demo"
-    },
-    {
-      source_event_id: `demo-football-2-${dateStamp}`,
-      sport: "football",
-      league: "Premier League",
-      home_name: "Equipo Norte",
-      away_name: "Equipo Sur",
-      start_time: new Date(footballTime + 2 * 3600000).toISOString(),
-      source: "demo"
-    },
-    {
-      source_event_id: `demo-basketball-1-${dateStamp}`,
-      sport: "basketball",
-      league: "NBA",
-      home_name: "Basket Local",
-      away_name: "Basket Visita",
-      start_time: new Date(basketballTime).toISOString(),
-      source: "demo"
-    },
-    {
-      source_event_id: `demo-basketball-2-${dateStamp}`,
-      sport: "basketball",
-      league: "NBA",
-      home_name: "Canasta Este",
-      away_name: "Canasta Oeste",
-      start_time: new Date(basketballTime + 3 * 3600000).toISOString(),
-      source: "demo"
-    }
-  ];
-
-  const odds = [
-    { source_event_id: events[0].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Peleador B", odds_decimal: 2.35, captured_at: capturedAt },
-    { source_event_id: events[0].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Peleador A", odds_decimal: 1.62, captured_at: capturedAt },
-    { source_event_id: events[1].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Peleador C", odds_decimal: 2.7, captured_at: capturedAt },
-    { source_event_id: events[2].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Equipo Local", odds_decimal: 1.92, captured_at: capturedAt },
-    { source_event_id: events[3].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Equipo Sur", odds_decimal: 2.15, captured_at: capturedAt },
-    { source_event_id: events[4].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Basket Visita", odds_decimal: 2.55, captured_at: capturedAt },
-    { source_event_id: events[5].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Canasta Este", odds_decimal: 1.78, captured_at: capturedAt }
-  ];
-
-  return { events, odds };
-}
-
 async function fetchOddsApi(capturedAt) {
-  const apiKey = process.env.ODDS_API_KEY;
-  if (!apiKey) return demoPayload(capturedAt);
-
   const sportKeys = (process.env.ODDS_API_SPORT_KEYS || "mma_mixed_martial_arts,basketball_nba,soccer_epl")
     .split(",")
     .map((item) => item.trim())
@@ -128,24 +49,23 @@ async function fetchOddsApi(capturedAt) {
   const regions = process.env.ODDS_API_REGIONS || "us,eu";
   const markets = process.env.ODDS_API_MARKETS || "h2h";
   const oddsFormat = process.env.ODDS_API_ODDS_FORMAT || "decimal";
-
   const events = [];
   const odds = [];
 
   for (const sportKey of sportKeys) {
     const url = new URL(`https://api.the-odds-api.com/v4/sports/${sportKey}/odds`);
-    url.searchParams.set("apiKey", apiKey);
+    url.searchParams.set("apiKey", process.env.ODDS_API_KEY);
     url.searchParams.set("regions", regions);
     url.searchParams.set("markets", markets);
     url.searchParams.set("oddsFormat", oddsFormat);
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`The Odds API ${response.status}: ${body}`);
+    const apiResponse = await fetch(url);
+    if (!apiResponse.ok) {
+      const body = await apiResponse.text();
+      throw new Error(`The Odds API ${apiResponse.status}: ${body}`);
     }
 
-    const items = await response.json();
+    const items = await apiResponse.json();
     for (const item of items) {
       const event = {
         source_event_id: item.id,
@@ -182,8 +102,12 @@ async function persistPayload(payload, capturedAt) {
   await supabaseFetch("refresh_runs", {
     method: "POST",
     headers: { prefer: "return=minimal" },
-    body: JSON.stringify([{ source: payload.events[0]?.source ?? "demo", created_at: capturedAt }])
+    body: JSON.stringify([{ source: "the-odds-api", created_at: capturedAt }])
   });
+
+  if (!payload.events.length) {
+    return { events: [], odds: [] };
+  }
 
   const savedEvents = await supabaseFetch("events?on_conflict=sport,source,source_event_id", {
     method: "POST",
@@ -232,15 +156,23 @@ export default async function handler(request, response) {
   }
 
   try {
-    const capturedAt = new Date().toISOString();
-    const payload = await fetchOddsApi(capturedAt);
-
-    if (!hasSupabaseEnv()) {
-      return send(response, { ...payload, capturedAt, mode: "demo", persisted: false });
+    const missing = missingEnvVars();
+    if (missing.length) {
+      return send(response, {
+        error: `Faltan variables en Vercel: ${missing.join(", ")}`
+      }, 500);
     }
 
+    const capturedAt = new Date().toISOString();
+    const payload = await fetchOddsApi(capturedAt);
     const persisted = await persistPayload(payload, capturedAt);
-    return send(response, { ...persisted, capturedAt, mode: "supabase", persisted: true });
+
+    return send(response, {
+      ...persisted,
+      capturedAt,
+      mode: "real",
+      persisted: true
+    });
   } catch (error) {
     return send(response, { error: error.message }, 500);
   }

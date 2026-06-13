@@ -19,7 +19,7 @@ let state = {
   selectedGroupId: null,
   events: [],
   odds: [],
-  mode: "demo"
+  mode: "real"
 };
 
 const sportLabels = {
@@ -281,7 +281,7 @@ function render() {
   eventsCount.textContent = String(events.length);
   oddsCount.textContent = String(state.odds.length);
   bestSignal.textContent = allBestOdds[0] ? `${allBestOdds[0].selection} ${Number(allBestOdds[0].odds_decimal).toFixed(2)}` : "-";
-  modeText.textContent = state.mode === "supabase" ? "Supabase" : "Demo/local";
+  modeText.textContent = state.mode === "real" ? "Supabase + Odds API" : "Config incompleta";
 
   groupsList.innerHTML = groups.map(renderGroupCard).join("");
   groupsEmpty.hidden = groups.length > 0;
@@ -297,7 +297,7 @@ async function loadEvents() {
 
   state.events = payload.events ?? [];
   state.odds = payload.odds ?? [];
-  state.mode = payload.mode ?? "demo";
+  state.mode = payload.mode ?? "real";
   if (payload.lastUpdated) lastUpdated.textContent = formatDate(payload.lastUpdated);
   statusText.textContent = "Datos listos";
   render();
@@ -314,9 +314,9 @@ async function refreshData() {
 
     state.events = payload.events ?? [];
     state.odds = payload.odds ?? [];
-    state.mode = payload.mode ?? "demo";
+    state.mode = payload.mode ?? "real";
     lastUpdated.textContent = formatDate(payload.capturedAt);
-    statusText.textContent = payload.persisted ? "Actualizacion guardada" : "Actualizacion en modo demo";
+    statusText.textContent = payload.persisted ? "Actualizacion real guardada" : "No se guardaron datos";
     render();
   } catch (error) {
     statusText.textContent = error.message;
