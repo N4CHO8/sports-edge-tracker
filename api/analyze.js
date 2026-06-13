@@ -79,7 +79,7 @@ function recentSeasons() {
   const configured = String(process.env.API_SPORTS_SEASONS || "")
     .split(",")
     .map((season) => Number(season.trim()))
-    .filter(Number.isFinite);
+    .filter((season) => Number.isFinite(season) && season > 0);
   return configured.length ? configured : [2024, 2023, 2022];
 }
 
