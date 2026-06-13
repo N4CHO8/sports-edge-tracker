@@ -316,7 +316,7 @@ async function refreshData() {
     state.odds = payload.odds ?? [];
     state.mode = payload.mode ?? "real";
     lastUpdated.textContent = formatDate(payload.capturedAt);
-    statusText.textContent = payload.persisted ? "Actualizacion real guardada" : "No se guardaron datos";
+    statusText.textContent = payload.message ?? (payload.persisted ? "Actualizacion real guardada" : "No se guardaron datos");
     render();
   } catch (error) {
     statusText.textContent = error.message;

@@ -16,7 +16,7 @@ Copia `.env.example` a `.env.local` para desarrollo o configura estas variables 
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 ODDS_API_KEY=
-ODDS_API_SPORT_KEYS=mma_mixed_martial_arts,basketball_nba,soccer_epl
+ODDS_API_SPORT_KEYS=mma_mixed_martial_arts,basketball_nba,soccer_usa_mls
 ODDS_API_REGIONS=us,eu
 ODDS_API_MARKETS=h2h
 ODDS_API_ODDS_FORMAT=decimal

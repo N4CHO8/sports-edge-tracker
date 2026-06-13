@@ -42,7 +42,7 @@ async function supabaseFetch(path, options = {}) {
 }
 
 async function fetchOddsApi(capturedAt) {
-  const sportKeys = (process.env.ODDS_API_SPORT_KEYS || "mma_mixed_martial_arts,basketball_nba,soccer_epl")
+  const sportKeys = (process.env.ODDS_API_SPORT_KEYS || "mma_mixed_martial_arts,basketball_nba,soccer_usa_mls")
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
@@ -51,6 +51,7 @@ async function fetchOddsApi(capturedAt) {
   const oddsFormat = process.env.ODDS_API_ODDS_FORMAT || "decimal";
   const events = [];
   const odds = [];
+  const diagnostics = [];
 
   for (const sportKey of sportKeys) {
     const url = new URL(`https://api.the-odds-api.com/v4/sports/${sportKey}/odds`);
@@ -60,12 +61,25 @@ async function fetchOddsApi(capturedAt) {
     url.searchParams.set("oddsFormat", oddsFormat);
 
     const apiResponse = await fetch(url);
+    const body = await apiResponse.text();
     if (!apiResponse.ok) {
-      const body = await apiResponse.text();
       throw new Error(`The Odds API ${apiResponse.status}: ${body}`);
     }
 
-    const items = await apiResponse.json();
+    if (!body.trim()) {
+      diagnostics.push({ sportKey, events: 0, warning: "Respuesta vacia desde The Odds API" });
+      continue;
+    }
+
+    let items;
+    try {
+      items = JSON.parse(body);
+    } catch (error) {
+      throw new Error(`The Odds API devolvio JSON invalido para ${sportKey}: ${error.message}`);
+    }
+
+    diagnostics.push({ sportKey, events: Array.isArray(items) ? items.length : 0 });
+
     for (const item of items) {
       const event = {
         source_event_id: item.id,
@@ -95,7 +109,7 @@ async function fetchOddsApi(capturedAt) {
     }
   }
 
-  return { events, odds };
+  return { events, odds, diagnostics };
 }
 
 async function persistPayload(payload, capturedAt) {
@@ -106,7 +120,7 @@ async function persistPayload(payload, capturedAt) {
   });
 
   if (!payload.events.length) {
-    return { events: [], odds: [] };
+    return { events: [], odds: [], diagnostics: payload.diagnostics ?? [] };
   }
 
   const savedEvents = await supabaseFetch("events?on_conflict=sport,source,source_event_id", {
@@ -146,7 +160,8 @@ async function persistPayload(payload, capturedAt) {
 
   return {
     events: savedEvents,
-    odds: oddsRows
+    odds: oddsRows,
+    diagnostics: payload.diagnostics ?? []
   };
 }
 
@@ -166,10 +181,14 @@ export default async function handler(request, response) {
     const capturedAt = new Date().toISOString();
     const payload = await fetchOddsApi(capturedAt);
     const persisted = await persistPayload(payload, capturedAt);
+    const message = persisted.events.length
+      ? `Se guardaron ${persisted.events.length} eventos y ${persisted.odds.length} cuotas.`
+      : `The Odds API no devolvio eventos para los deportes configurados: ${(persisted.diagnostics ?? []).map((item) => item.sportKey).join(", ")}`;
 
     return send(response, {
       ...persisted,
       capturedAt,
+      message,
       mode: "real",
       persisted: true
     });
