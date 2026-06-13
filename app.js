@@ -378,6 +378,57 @@ function formatNumber(value, digits = 2) {
   return Number.isFinite(number) ? number.toFixed(digits) : "sin datos";
 }
 
+function percentText(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? `${Math.round(number * 10) / 10}%` : "sin datos";
+}
+
+function formResultLabel(result) {
+  return {
+    G: "Gano",
+    E: "Empato",
+    P: "Perdio"
+  }[result] ?? result;
+}
+
+function renderFormBadges(form) {
+  if (!form || form === "sin datos suficientes") return `<span class="form-empty">Sin forma reciente</span>`;
+  return form.split("-").map((result) => `
+    <span class="form-badge ${escapeHtml(result.toLowerCase())}" title="${escapeHtml(formResultLabel(result))}">
+      ${escapeHtml(result)}
+    </span>
+  `).join("");
+}
+
+function outcomeSummary(outcome) {
+  if (!outcome) return "";
+  const options = [
+    { label: "gana el local", value: Number(outcome.homeWin) },
+    { label: "empate", value: Number(outcome.draw) },
+    { label: "gana la visita", value: Number(outcome.awayWin) }
+  ].filter((item) => Number.isFinite(item.value));
+  const best = options.sort((a, b) => b.value - a.value)[0];
+  return best ? `Lectura rapida: el resultado mas probable segun el modelo es que ${best.label} (${percentText(best.value)}).` : "";
+}
+
+function analysisStat(label, value, hint = "") {
+  return `
+    <div class="analysis-stat">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      ${hint ? `<small>${escapeHtml(hint)}</small>` : ""}
+    </div>
+  `;
+}
+
+function teamRead(team) {
+  const scoredRate = Number(team.scoredRate);
+  const overRate = Number(team.over25Rate);
+  if (Number.isFinite(scoredRate) && scoredRate >= 80) return "Viene marcando con mucha frecuencia.";
+  if (Number.isFinite(overRate) && overRate >= 55) return "Sus partidos tienden a tener varios goles.";
+  return "Lectura conservadora: revisar junto con cuotas y contexto del partido.";
+}
+
 function renderAnalysisResult(analysis) {
   const outcome = analysis.summary?.outcome;
   const teams = Array.isArray(analysis.teams) ? analysis.teams : [];
@@ -385,30 +436,36 @@ function renderAnalysisResult(analysis) {
   return `
     ${outcome ? `
       <div class="probability-strip">
-        <span class="probability-pill green">Local ${formatPercent(outcome.homeWin / 100)}</span>
-        <span class="probability-pill yellow">Empate ${formatPercent(outcome.draw / 100)}</span>
-        <span class="probability-pill red">Visita ${formatPercent(outcome.awayWin / 100)}</span>
+        <span class="probability-pill green">Gana local ${percentText(outcome.homeWin)}</span>
+        <span class="probability-pill yellow">Empate ${percentText(outcome.draw)}</span>
+        <span class="probability-pill red">Gana visita ${percentText(outcome.awayWin)}</span>
       </div>
-      <p>${escapeHtml(outcome.note ?? analysis.summary?.disclaimer ?? "")}</p>
+      <p class="analysis-note">${escapeHtml(outcomeSummary(outcome))}</p>
+      <p class="analysis-disclaimer">${escapeHtml(outcome.note ?? analysis.summary?.disclaimer ?? "")}</p>
     ` : `<p>${escapeHtml(analysis.summary?.disclaimer ?? "sin datos suficientes")}</p>`}
     <div class="team-analysis-list">
       ${teams.map((team) => `
         <div class="team-analysis">
-          <div>
-            <strong>${escapeHtml(team.team ?? team.teamName ?? "Equipo")}</strong>
-            <span>${escapeHtml(team.form5 ?? "sin datos suficientes")}</span>
+          <div class="team-analysis-head">
+            <div>
+              <strong>${escapeHtml(team.team ?? team.teamName ?? "Equipo")}</strong>
+              <span>${escapeHtml(teamRead(team))}</span>
+            </div>
+            <div class="form-strip" aria-label="Forma ultimos 5 partidos">
+              ${renderFormBadges(team.form5)}
+            </div>
           </div>
           <div class="analysis-mini-grid">
-            <span>GF ${formatNumber(team.gfPerMatch)}</span>
-            <span>GC ${formatNumber(team.gaPerMatch)}</span>
-            <span>Over 2.5 ${formatPercent(Number(team.over25Rate) / 100)}</span>
-            <span>BTTS ${formatPercent(Number(team.bttsRate) / 100)}</span>
-            <span>Corners ${formatNumber(team.cornersFor)} / ${escapeHtml(team.cornersLine ?? "sin datos")}</span>
-            <span>Tarjetas ${formatNumber(team.cardsFor)} / ${escapeHtml(team.cardsLine ?? "sin datos")}</span>
-            <span>Posesion ${formatPercent(Number(team.possession) / 100)}</span>
-            <span>Remates arco ${formatNumber(team.shotsOnGoal)}</span>
+            ${analysisStat("Goles a favor", formatNumber(team.gfPerMatch), "promedio por partido")}
+            ${analysisStat("Goles en contra", formatNumber(team.gaPerMatch), "promedio recibido")}
+            ${analysisStat("Mas de 2.5 goles", percentText(team.over25Rate), "partidos con 3+ goles")}
+            ${analysisStat("Ambos anotan", percentText(team.bttsRate), "los dos equipos marcaron")}
+            ${analysisStat("Corners a favor", formatNumber(team.cornersFor), team.cornersLine ?? "sin linea")}
+            ${analysisStat("Tarjetas propias", formatNumber(team.cardsFor), team.cardsLine ?? "sin linea")}
+            ${analysisStat("Posesion", percentText(team.possession), "promedio de la muestra")}
+            ${analysisStat("Remates al arco", formatNumber(team.shotsOnGoal), "promedio por partido")}
           </div>
-          <p>${escapeHtml(team.hotFact ?? "Sin dato caliente suficiente.")}</p>
+          <p class="hot-fact"><span>Dato fuerte:</span> ${escapeHtml(team.hotFact ?? "Sin dato caliente suficiente.")}</p>
         </div>
       `).join("")}
     </div>
