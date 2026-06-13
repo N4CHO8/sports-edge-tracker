@@ -1,5 +1,6 @@
 const ANALYSIS_SOURCE = "api-sports-football";
 const DEFAULT_LAST_MATCHES = 20;
+const FREE_PLAN_DETAIL_MATCH_CAP = 6;
 
 function send(res, response, status = 200) {
   res.statusCode = status;
@@ -58,6 +59,47 @@ async function apiSportsFetch(path, params = {}) {
   }
 
   return payload?.response ?? [];
+}
+
+function apiSportsErrorAllowsDateFallback(error) {
+  return String(error?.message ?? "").toLowerCase().includes("last parameter");
+}
+
+function formatIsoDate(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function pastDate(daysBack) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - daysBack);
+  return date;
+}
+
+async function recentFootballFixtures(teamId, wantedMatches) {
+  try {
+    return await apiSportsFetch("fixtures", { team: teamId, last: wantedMatches });
+  } catch (error) {
+    if (!apiSportsErrorAllowsDateFallback(error)) throw error;
+  }
+
+  const lookbackDays = Number(process.env.API_SPORTS_LOOKBACK_DAYS || 1460);
+  const fixtures = await apiSportsFetch("fixtures", {
+    team: teamId,
+    from: formatIsoDate(pastDate(lookbackDays)),
+    to: formatIsoDate(new Date())
+  });
+
+  return fixtures
+    .sort((a, b) => new Date(b.fixture?.date ?? 0) - new Date(a.fixture?.date ?? 0))
+    .slice(0, wantedMatches);
+}
+
+function detailMatchLimit(lastMatches) {
+  const configured = Number(process.env.API_SPORTS_DETAIL_MATCHES || FREE_PLAN_DETAIL_MATCH_CAP);
+  const requested = Number.isFinite(configured) && configured > 0 ? configured : FREE_PLAN_DETAIL_MATCH_CAP;
+  const allowHighDetail = String(process.env.API_SPORTS_ALLOW_HIGH_DETAIL ?? "false").toLowerCase() === "true";
+  const cap = allowHighDetail ? lastMatches : FREE_PLAN_DETAIL_MATCH_CAP;
+  return Math.min(requested, lastMatches, cap);
 }
 
 function average(values) {
@@ -147,13 +189,13 @@ async function footballFixtureStats(fixtureId, teamId) {
 
 async function footballTeamAnalysis(teamName) {
   const lastMatches = Number(process.env.API_SPORTS_LAST_MATCHES || DEFAULT_LAST_MATCHES);
-  const statsMatches = Number(process.env.API_SPORTS_DETAIL_MATCHES || DEFAULT_LAST_MATCHES);
+  const statsMatches = detailMatchLimit(lastMatches);
   const team = await findFootballTeam(teamName);
   if (!team?.team?.id) {
     return { teamName, status: "insufficient_data", reason: "Equipo no encontrado en API-Football" };
   }
 
-  const fixtures = await apiSportsFetch("fixtures", { team: team.team.id, last: lastMatches });
+  const fixtures = await recentFootballFixtures(team.team.id, lastMatches);
   const completed = fixtures
     .filter((item) => ["FT", "AET", "PEN"].includes(item.fixture?.status?.short))
     .slice(0, lastMatches);
@@ -238,7 +280,9 @@ async function analyzeFootballEvent(event) {
     diagnostics: {
       requestedTeams: [event.home_name, event.away_name],
       lastMatches: Number(process.env.API_SPORTS_LAST_MATCHES || DEFAULT_LAST_MATCHES),
-      detailMatches: Number(process.env.API_SPORTS_DETAIL_MATCHES || DEFAULT_LAST_MATCHES),
+      detailMatches: detailMatchLimit(Number(process.env.API_SPORTS_LAST_MATCHES || DEFAULT_LAST_MATCHES)),
+      fallback: "Si el plan gratis bloquea last=20, se usa rango de fechas y se ordena localmente.",
+      freePlanNote: "Para cuidar el cupo gratis, las estadisticas detalladas se limitan a 6 partidos por equipo salvo que API_SPORTS_ALLOW_HIGH_DETAIL=true.",
       consultedAt: new Date().toISOString()
     }
   };
