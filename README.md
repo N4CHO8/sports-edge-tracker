@@ -16,16 +16,18 @@ Copia `.env.example` a `.env.local` para desarrollo o configura estas variables 
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 ODDS_API_KEY=
-ODDS_API_SPORT_KEYS=mma_mixed_martial_arts,basketball_nba,soccer_usa_mls
+ODDS_API_SPORT_KEYS=mma_mixed_martial_arts,basketball_nba,soccer_fifa_world_cup
 ODDS_API_REGIONS=us,eu
 ODDS_API_MARKETS=h2h
 ODDS_API_ODDS_FORMAT=decimal
 ODDS_API_MAX_LOOKAHEAD_DAYS=60
 ODDS_API_REQUIRE_UFC_OFFICIAL=true
+ODDS_API_AUTO_MAJOR_TOURNAMENTS=true
 ```
 
 `ODDS_API_KEY` es obligatoria. Sin esa key, la app no inventa datos.
 `ODDS_API_REQUIRE_UFC_OFFICIAL=true` hace que las peleas MMA se crucen con la cartelera publicada en UFC.com antes de guardarlas como UFC. Si UFC.com no responde, la app no se cae, pero informa el aviso en los diagnosticos de la actualizacion.
+`ODDS_API_AUTO_MAJOR_TOURNAMENTS=true` prioriza el Mundial en futbol y NBA en basquet, incluso si quedo configurada una liga antigua como MLS.
 
 ## Supabase
 

@@ -5,6 +5,7 @@ const SPORT_MAP = {
   football: "football",
   basketball: "basketball"
 };
+const DEFAULT_SPORT_KEYS = "mma_mixed_martial_arts,basketball_nba,soccer_fifa_world_cup";
 
 function send(res, response, status = 200) {
   res.statusCode = status;
@@ -19,6 +20,35 @@ function missingEnvVars() {
 function normalizeSport(key) {
   const prefix = String(key).split("_")[0];
   return SPORT_MAP[prefix] ?? "football";
+}
+
+function normalizeSportKeys(keys) {
+  const majorTournamentMode = String(process.env.ODDS_API_AUTO_MAJOR_TOURNAMENTS ?? "true").toLowerCase() !== "false";
+  if (!majorTournamentMode) return Array.from(new Set(keys));
+
+  const normalized = [...keys];
+  const soccerIndex = normalized.findIndex((key) => key.startsWith("soccer_"));
+  if (soccerIndex >= 0 && !normalized.includes("soccer_fifa_world_cup")) {
+    normalized[soccerIndex] = "soccer_fifa_world_cup";
+  }
+
+  if (!normalized.some((key) => key.startsWith("soccer_"))) {
+    normalized.push("soccer_fifa_world_cup");
+  }
+
+  const basketballIndex = normalized.findIndex((key) => key.startsWith("basketball_"));
+  if (basketballIndex >= 0 && !normalized.includes("basketball_nba")) {
+    normalized[basketballIndex] = "basketball_nba";
+  }
+
+  return Array.from(new Set(normalized));
+}
+
+function configuredSportKeys() {
+  return normalizeSportKeys((process.env.ODDS_API_SPORT_KEYS || DEFAULT_SPORT_KEYS)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean));
 }
 
 function eventTimestamp(event) {
@@ -218,10 +248,7 @@ async function supabaseFetch(path, options = {}) {
 }
 
 async function fetchOddsApi(capturedAt) {
-  const sportKeys = (process.env.ODDS_API_SPORT_KEYS || "mma_mixed_martial_arts,basketball_nba,soccer_usa_mls")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  const sportKeys = configuredSportKeys();
   const regions = process.env.ODDS_API_REGIONS || "us,eu";
   const markets = process.env.ODDS_API_MARKETS || "h2h";
   const oddsFormat = process.env.ODDS_API_ODDS_FORMAT || "decimal";

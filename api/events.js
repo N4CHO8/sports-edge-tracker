@@ -40,7 +40,7 @@ export default async function handler(request, response) {
 
     const [events, odds, runs] = await Promise.all([
       supabaseFetch("events?select=*&order=start_time.asc&limit=240"),
-      supabaseFetch("odds_snapshots?select=*&order=captured_at.desc&limit=1200"),
+      supabaseFetch("odds_snapshots?select=*&order=captured_at.desc&limit=5000"),
       supabaseFetch("refresh_runs?select=created_at&order=created_at.desc&limit=1")
     ]);
 

@@ -12,6 +12,7 @@ const detailHeader = document.querySelector("#detailHeader");
 const detailBody = document.querySelector("#detailBody");
 const searchInput = document.querySelector("#searchInput");
 const tabs = Array.from(document.querySelectorAll(".tab"));
+const APP_TIME_ZONE = "America/Santiago";
 
 let state = {
   activeSport: "all",
@@ -45,12 +46,20 @@ function escapeHtml(value) {
 
 function dayKey(value) {
   if (!value) return "sin-fecha";
-  return new Date(value).toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date(value));
+  const part = (type) => parts.find((item) => item.type === type)?.value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
 function formatDate(value) {
   if (!value) return "Sin fecha";
   return new Intl.DateTimeFormat("es-CL", {
+    timeZone: APP_TIME_ZONE,
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));
@@ -59,10 +68,11 @@ function formatDate(value) {
 function formatDay(value) {
   if (!value || value === "sin-fecha") return "Sin fecha";
   return new Intl.DateTimeFormat("es-CL", {
+    timeZone: "UTC",
     weekday: "short",
     day: "2-digit",
     month: "short"
-  }).format(new Date(`${value}T12:00:00`));
+  }).format(new Date(`${value}T12:00:00Z`));
 }
 
 function formatPercent(value) {
@@ -80,7 +90,7 @@ function eventName(event) {
 }
 
 function latestOddsForEvent(event) {
-  const rows = state.odds.filter((odd) => odd.event_id === event.id || odd.source_event_id === event.source_event_id);
+  const rows = oddsForEvent(event);
   const latest = new Map();
 
   for (const odd of rows) {
@@ -94,9 +104,58 @@ function latestOddsForEvent(event) {
   return Array.from(latest.values()).sort((a, b) => Number(b.odds_decimal) - Number(a.odds_decimal));
 }
 
+function oddsForEvent(event) {
+  return state.odds.filter((odd) => odd.event_id === event.id || odd.source_event_id === event.source_event_id);
+}
+
 function getBestOdd(event) {
   const rows = latestOddsForEvent(event);
   return rows[0] ?? null;
+}
+
+function average(values) {
+  const numbers = values.map(Number).filter(Number.isFinite);
+  return numbers.length ? numbers.reduce((sum, value) => sum + value, 0) / numbers.length : null;
+}
+
+function uniqueCount(rows, key) {
+  return new Set(rows.map((row) => row[key]).filter(Boolean)).size;
+}
+
+function averageOddsForSelection(rows, selection) {
+  return average(rows.filter((row) => row.selection === selection).map((row) => row.odds_decimal));
+}
+
+function formatMovement(value) {
+  if (!Number.isFinite(value) || Math.abs(value) < 0.01) return "Sin cambio";
+  const direction = value > 0 ? "Subio" : "Bajo";
+  return `${direction} ${Math.abs(value).toFixed(2)}`;
+}
+
+function marketStatsForEvent(event) {
+  const rows = oddsForEvent(event).sort((a, b) => new Date(a.captured_at ?? 0) - new Date(b.captured_at ?? 0));
+  const latestRows = latestOddsForEvent(event).filter((odd) => odd.market === "h2h");
+  const selections = Array.from(new Set(latestRows.map((odd) => odd.selection).filter(Boolean)));
+  const selectionStats = selections.map((selection) => {
+    const latestAverage = averageOddsForSelection(latestRows, selection);
+    const firstCapture = rows.find((row) => row.selection === selection)?.captured_at;
+    const firstRows = rows.filter((row) => row.selection === selection && row.captured_at === firstCapture);
+    const firstAverage = averageOddsForSelection(firstRows, selection);
+
+    return {
+      selection,
+      odds: latestAverage,
+      probability: impliedProbability(latestAverage),
+      movement: Number.isFinite(latestAverage) && Number.isFinite(firstAverage) ? latestAverage - firstAverage : null
+    };
+  }).sort((a, b) => (b.probability ?? 0) - (a.probability ?? 0));
+
+  return {
+    snapshots: uniqueCount(rows, "captured_at"),
+    bookmakers: uniqueCount(latestRows, "bookmaker"),
+    favorite: selectionStats[0] ?? null,
+    selections: selectionStats
+  };
 }
 
 function signalFor(odd) {
@@ -208,6 +267,43 @@ function renderOddsTable(event) {
   `;
 }
 
+function renderMarketStats(event) {
+  const stats = marketStatsForEvent(event);
+  const favorite = stats.favorite;
+
+  return `
+    <div class="analysis-grid">
+      <div>
+        <span class="label">Favorito por mercado</span>
+        <strong>${favorite ? escapeHtml(favorite.selection) : "-"}</strong>
+      </div>
+      <div>
+        <span class="label">Prob. implicita</span>
+        <strong>${favorite ? formatPercent(favorite.probability) : "-"}</strong>
+      </div>
+      <div>
+        <span class="label">Movimiento cuota</span>
+        <strong>${favorite ? escapeHtml(formatMovement(favorite.movement)) : "-"}</strong>
+      </div>
+      <div>
+        <span class="label">Historico</span>
+        <strong>${stats.snapshots} capturas / ${stats.bookmakers} casas</strong>
+      </div>
+    </div>
+    ${stats.selections.length ? `
+      <div class="selection-stats">
+        ${stats.selections.map((item) => `
+          <div class="selection-stat">
+            <span>${escapeHtml(item.selection)}</span>
+            <strong>${formatPercent(item.probability)}</strong>
+            <small>${escapeHtml(formatMovement(item.movement))}</small>
+          </div>
+        `).join("")}
+      </div>
+    ` : ""}
+  `;
+}
+
 function renderEventDetail(event) {
   const bestOdd = getBestOdd(event);
   const signal = signalFor(bestOdd);
@@ -224,7 +320,7 @@ function renderEventDetail(event) {
       </div>
       <div class="event-summary">
         <div>
-          <span class="label">Mejor cuota</span>
+          <span class="label">Mejor cuota disponible</span>
           <strong>${bestOdd ? `${escapeHtml(bestOdd.selection)} ${Number(bestOdd.odds_decimal).toFixed(2)}` : "-"}</strong>
         </div>
         <div>
@@ -236,7 +332,11 @@ function renderEventDetail(event) {
           <strong>${escapeHtml(bestOdd?.market ?? "h2h")}</strong>
         </div>
       </div>
-      ${renderOddsTable(event)}
+      ${renderMarketStats(event)}
+      <details class="odds-disclosure">
+        <summary>Ver casas de apuesta</summary>
+        ${renderOddsTable(event)}
+      </details>
     </article>
   `;
 }
