@@ -20,6 +20,7 @@ let state = {
   selectedGroupId: null,
   events: [],
   odds: [],
+  analyses: [],
   mode: "real"
 };
 
@@ -337,6 +338,11 @@ function renderMarketStats(event) {
 function renderResearchPlan(event) {
   const plan = sportAnalysisPlans[event.sport];
   if (!plan) return "";
+  const analysis = analysisForEvent(event);
+  const isReady = analysis?.status === "ready";
+  const isMissingConfig = analysis?.status === "missing_config";
+  const chipClass = isReady ? "ready" : isMissingConfig ? "warning" : "missing";
+  const chipText = isReady ? "Datos reales" : isMissingConfig ? "Falta API key" : "Sin datos suficientes";
 
   return `
     <div class="research-panel">
@@ -345,13 +351,66 @@ function renderResearchPlan(event) {
           <span class="label">${escapeHtml(plan.title)}</span>
           <strong>Informe avanzado</strong>
         </div>
-        <span class="data-chip missing">Sin datos suficientes</span>
+        <span class="data-chip ${chipClass}">${chipText}</span>
       </div>
-      <p>${escapeHtml(plan.prompt)}</p>
-      <div class="research-foot">
-        <span>${escapeHtml(plan.source)}</span>
-        <span>Faltan: ${plan.missing.map(escapeHtml).join(", ")}</span>
+      ${isReady ? renderAnalysisResult(analysis) : `
+        <p>${escapeHtml(isMissingConfig ? analysis.summary?.disclaimer : plan.prompt)}</p>
+        <div class="research-foot">
+          <span>${escapeHtml(plan.source)}</span>
+          <span>Faltan: ${plan.missing.map(escapeHtml).join(", ")}</span>
+        </div>
+        <button class="secondary-button analyze-button" type="button" data-event-id="${escapeHtml(event.id)}">
+          ${event.sport === "football" ? "Calcular analisis con API" : "Conector pendiente"}
+        </button>
+      `}
+    </div>
+  `;
+}
+
+function analysisForEvent(event) {
+  return state.analyses
+    .filter((analysis) => analysis.event_id === event.id)
+    .sort((a, b) => new Date(b.calculated_at ?? 0) - new Date(a.calculated_at ?? 0))[0] ?? null;
+}
+
+function formatNumber(value, digits = 2) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toFixed(digits) : "sin datos";
+}
+
+function renderAnalysisResult(analysis) {
+  const outcome = analysis.summary?.outcome;
+  const teams = Array.isArray(analysis.teams) ? analysis.teams : [];
+
+  return `
+    ${outcome ? `
+      <div class="probability-strip">
+        <span class="probability-pill green">Local ${formatPercent(outcome.homeWin / 100)}</span>
+        <span class="probability-pill yellow">Empate ${formatPercent(outcome.draw / 100)}</span>
+        <span class="probability-pill red">Visita ${formatPercent(outcome.awayWin / 100)}</span>
       </div>
+      <p>${escapeHtml(outcome.note ?? analysis.summary?.disclaimer ?? "")}</p>
+    ` : `<p>${escapeHtml(analysis.summary?.disclaimer ?? "sin datos suficientes")}</p>`}
+    <div class="team-analysis-list">
+      ${teams.map((team) => `
+        <div class="team-analysis">
+          <div>
+            <strong>${escapeHtml(team.team ?? team.teamName ?? "Equipo")}</strong>
+            <span>${escapeHtml(team.form5 ?? "sin datos suficientes")}</span>
+          </div>
+          <div class="analysis-mini-grid">
+            <span>GF ${formatNumber(team.gfPerMatch)}</span>
+            <span>GC ${formatNumber(team.gaPerMatch)}</span>
+            <span>Over 2.5 ${formatPercent(Number(team.over25Rate) / 100)}</span>
+            <span>BTTS ${formatPercent(Number(team.bttsRate) / 100)}</span>
+            <span>Corners ${formatNumber(team.cornersFor)} / ${escapeHtml(team.cornersLine ?? "sin datos")}</span>
+            <span>Tarjetas ${formatNumber(team.cardsFor)} / ${escapeHtml(team.cardsLine ?? "sin datos")}</span>
+            <span>Posesion ${formatPercent(Number(team.possession) / 100)}</span>
+            <span>Remates arco ${formatNumber(team.shotsOnGoal)}</span>
+          </div>
+          <p>${escapeHtml(team.hotFact ?? "Sin dato caliente suficiente.")}</p>
+        </div>
+      `).join("")}
     </div>
   `;
 }
@@ -450,6 +509,7 @@ async function loadEvents() {
 
   state.events = payload.events ?? [];
   state.odds = payload.odds ?? [];
+  state.analyses = payload.analyses ?? [];
   state.mode = payload.mode ?? "real";
   if (payload.lastUpdated) lastUpdated.textContent = formatDate(payload.lastUpdated);
   statusText.textContent = "Datos listos";
@@ -467,6 +527,7 @@ async function refreshData() {
 
     state.events = payload.events ?? [];
     state.odds = payload.odds ?? [];
+    state.analyses = payload.analyses ?? state.analyses;
     state.mode = payload.mode ?? "real";
     lastUpdated.textContent = formatDate(payload.capturedAt);
     statusText.textContent = payload.message ?? (payload.persisted ? "Actualizacion real guardada" : "No se guardaron datos");
@@ -484,6 +545,35 @@ groupsList.addEventListener("click", (event) => {
   if (!card) return;
   state.selectedGroupId = card.dataset.groupId;
   render();
+});
+
+detailBody.addEventListener("click", async (event) => {
+  const button = event.target.closest(".analyze-button");
+  if (!button || button.disabled) return;
+
+  button.disabled = true;
+  button.textContent = "Calculando...";
+
+  try {
+    const response = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ eventId: button.dataset.eventId })
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "No se pudo calcular el analisis");
+
+    const analysis = payload.analysis;
+    state.analyses = [
+      analysis,
+      ...state.analyses.filter((item) => !(item.event_id === analysis.event_id && item.source === analysis.source))
+    ];
+    render();
+  } catch (error) {
+    statusText.textContent = error.message;
+    button.disabled = false;
+    button.textContent = "Reintentar analisis";
+  }
 });
 
 searchInput.addEventListener("input", (event) => {

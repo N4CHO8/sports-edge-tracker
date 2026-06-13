@@ -114,6 +114,24 @@ main {
   box-shadow: 0 14px 34px rgba(70, 214, 134, 0.2);
 }
 
+.secondary-button {
+  min-height: 40px;
+  width: max-content;
+  max-width: 100%;
+  border: 1px solid rgba(113, 183, 255, 0.45);
+  border-radius: 8px;
+  padding: 0 14px;
+  background: rgba(113, 183, 255, 0.1);
+  color: var(--blue);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.secondary-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .primary-button:disabled {
   cursor: wait;
   opacity: 0.66;
@@ -534,6 +552,92 @@ main {
   background: rgba(246, 200, 96, 0.12);
 }
 
+.data-chip.warning {
+  color: var(--red);
+  background: rgba(255, 107, 107, 0.12);
+}
+
+.data-chip.ready {
+  color: var(--green);
+  background: rgba(61, 220, 151, 0.12);
+}
+
+.probability-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.probability-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 11px;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.probability-pill.green {
+  color: var(--green);
+  background: rgba(61, 220, 151, 0.13);
+}
+
+.probability-pill.yellow {
+  color: var(--orange);
+  background: rgba(246, 200, 96, 0.13);
+}
+
+.probability-pill.red {
+  color: var(--red);
+  background: rgba(255, 107, 107, 0.13);
+}
+
+.team-analysis-list {
+  display: grid;
+  gap: 10px;
+}
+
+.team-analysis {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(42, 52, 65, 0.85);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.team-analysis > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.team-analysis strong {
+  font-size: 15px;
+}
+
+.team-analysis span,
+.team-analysis p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.analysis-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.analysis-mini-grid span {
+  padding: 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.16);
+  color: var(--ink);
+  font-weight: 750;
+}
+
 .selection-stat span,
 .selection-stat strong,
 .selection-stat small {
@@ -671,6 +775,14 @@ main {
   }
 
   .selection-stat {
+    grid-template-columns: 1fr;
+  }
+
+  .secondary-button {
+    width: 100%;
+  }
+
+  .analysis-mini-grid {
     grid-template-columns: 1fr;
   }
 

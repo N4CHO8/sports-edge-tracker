@@ -32,23 +32,42 @@ create table if not exists public.odds_snapshots (
   captured_at timestamptz not null default now()
 );
 
+create table if not exists public.sports_analyses (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  sport text not null check (sport in ('ufc', 'football', 'basketball')),
+  source text not null,
+  status text not null default 'ready' check (status in ('ready', 'missing_config', 'insufficient_data', 'error')),
+  summary jsonb not null default '{}'::jsonb,
+  teams jsonb not null default '[]'::jsonb,
+  diagnostics jsonb not null default '{}'::jsonb,
+  calculated_at timestamptz not null default now(),
+  unique (event_id, source)
+);
+
 create index if not exists events_sport_start_time_idx
   on public.events (sport, start_time);
 
 create index if not exists odds_snapshots_event_captured_idx
   on public.odds_snapshots (event_id, captured_at desc);
 
+create index if not exists sports_analyses_event_idx
+  on public.sports_analyses (event_id, calculated_at desc);
+
 alter table public.refresh_runs enable row level security;
 alter table public.events enable row level security;
 alter table public.odds_snapshots enable row level security;
+alter table public.sports_analyses enable row level security;
 
 revoke all on table public.refresh_runs from anon, authenticated;
 revoke all on table public.events from anon, authenticated;
 revoke all on table public.odds_snapshots from anon, authenticated;
+revoke all on table public.sports_analyses from anon, authenticated;
 
 grant usage on schema public to service_role;
 grant all on table public.refresh_runs to service_role;
 grant all on table public.events to service_role;
 grant all on table public.odds_snapshots to service_role;
+grant all on table public.sports_analyses to service_role;
 
 grant usage, select on all sequences in schema public to service_role;

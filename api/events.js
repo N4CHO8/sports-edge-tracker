@@ -38,15 +38,17 @@ export default async function handler(request, response) {
       }, 500);
     }
 
-    const [events, odds, runs] = await Promise.all([
+    const [events, odds, analyses, runs] = await Promise.all([
       supabaseFetch("events?select=*&order=start_time.asc&limit=240"),
       supabaseFetch("odds_snapshots?select=*&order=captured_at.desc&limit=5000"),
+      supabaseFetch("sports_analyses?select=*&order=calculated_at.desc&limit=500"),
       supabaseFetch("refresh_runs?select=created_at&order=created_at.desc&limit=1")
     ]);
 
     return send(response, {
       events,
       odds,
+      analyses,
       mode: "real",
       lastUpdated: runs?.[0]?.created_at ?? null
     });

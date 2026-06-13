@@ -24,11 +24,15 @@ ODDS_API_ODDS_FORMAT=decimal
 ODDS_API_MAX_LOOKAHEAD_DAYS=60
 ODDS_API_REQUIRE_UFC_OFFICIAL=true
 ODDS_API_AUTO_MAJOR_TOURNAMENTS=true
+API_SPORTS_KEY=
+API_SPORTS_LAST_MATCHES=20
+API_SPORTS_DETAIL_MATCHES=20
 ```
 
 `ODDS_API_KEY` es obligatoria. Sin esa key, la app no inventa datos.
 `ODDS_API_REQUIRE_UFC_OFFICIAL=true` hace que las peleas MMA se crucen con la cartelera publicada en UFC.com antes de guardarlas como UFC. Si UFC.com no responde, la app no se cae, pero informa el aviso en los diagnosticos de la actualizacion.
 `ODDS_API_AUTO_MAJOR_TOURNAMENTS=true` prioriza el Mundial en futbol y NBA en basquet, incluso si quedo configurada una liga antigua como MLS.
+`API_SPORTS_KEY` activa el analisis avanzado de futbol usando API-Sports/API-Football. Sin esa variable, la app muestra el aviso y no inventa estadisticas.
 
 ## Supabase
 
