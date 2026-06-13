@@ -1,0 +1,15 @@
+{
+  "name": "sports-betting-stats",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Manual sports stats and odds refresh dashboard for UFC, football and basketball.",
+  "scripts": {
+    "start": "vercel dev",
+    "deploy": "vercel deploy",
+    "deploy:prod": "vercel deploy --prod"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
