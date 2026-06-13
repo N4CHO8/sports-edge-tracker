@@ -110,7 +110,8 @@ function oddsForEvent(event) {
 
 function getBestOdd(event) {
   const rows = latestOddsForEvent(event);
-  return rows[0] ?? null;
+  const moneylineRows = rows.filter((odd) => odd.market === "h2h");
+  return moneylineRows[0] ?? rows[0] ?? null;
 }
 
 function average(values) {
