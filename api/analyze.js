@@ -76,8 +76,11 @@ function pastDate(daysBack) {
 }
 
 function recentSeasons() {
-  const currentYear = new Date().getUTCFullYear();
-  return Array.from({ length: 6 }, (_, index) => currentYear - index);
+  const configured = String(process.env.API_SPORTS_SEASONS || "")
+    .split(",")
+    .map((season) => Number(season.trim()))
+    .filter(Number.isFinite);
+  return configured.length ? configured : [2024, 2023, 2022];
 }
 
 function uniqueFixtures(fixtures) {
@@ -105,12 +108,18 @@ async function recentFootballFixtures(teamId, wantedMatches) {
   const lookbackDays = Number(process.env.API_SPORTS_LOOKBACK_DAYS || 1460);
   const allFixtures = [];
   for (const season of recentSeasons()) {
-    const fixtures = await apiSportsFetch("fixtures", {
-      team: teamId,
-      season,
-      from: formatIsoDate(pastDate(lookbackDays)),
-      to: formatIsoDate(new Date())
-    });
+    let fixtures = [];
+    try {
+      fixtures = await apiSportsFetch("fixtures", {
+        team: teamId,
+        season,
+        from: formatIsoDate(pastDate(lookbackDays)),
+        to: formatIsoDate(new Date())
+      });
+    } catch (error) {
+      if (!String(error?.message ?? "").includes("Free plans do not have access to this season")) throw error;
+      continue;
+    }
     allFixtures.push(...fixtures);
     const completed = uniqueFixtures(allFixtures)
       .filter(isOfficialFootballFixture)
@@ -312,6 +321,8 @@ async function analyzeFootballEvent(event) {
       lastMatches: Number(process.env.API_SPORTS_LAST_MATCHES || DEFAULT_LAST_MATCHES),
       detailMatches: detailMatchLimit(Number(process.env.API_SPORTS_LAST_MATCHES || DEFAULT_LAST_MATCHES)),
       fallback: "Si el plan gratis bloquea last=20, se usa rango de fechas y se ordena localmente.",
+      seasons: recentSeasons(),
+      freePlanSeasonsNote: "El plan gratis de API-Sports puede limitar el historial a temporadas 2022-2024.",
       freePlanNote: "Para cuidar el cupo gratis, las estadisticas detalladas se limitan a 6 partidos por equipo salvo que API_SPORTS_ALLOW_HIGH_DETAIL=true.",
       consultedAt: new Date().toISOString()
     }

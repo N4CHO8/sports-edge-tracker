@@ -28,6 +28,7 @@ API_SPORTS_KEY=
 API_SPORTS_LAST_MATCHES=20
 API_SPORTS_DETAIL_MATCHES=6
 API_SPORTS_LOOKBACK_DAYS=1460
+API_SPORTS_SEASONS=2024,2023,2022
 ```
 
 `ODDS_API_KEY` es obligatoria. Sin esa key, la app no inventa datos.
@@ -35,6 +36,7 @@ API_SPORTS_LOOKBACK_DAYS=1460
 `ODDS_API_AUTO_MAJOR_TOURNAMENTS=true` prioriza el Mundial en futbol y NBA en basquet, incluso si quedo configurada una liga antigua como MLS.
 `API_SPORTS_KEY` activa el analisis avanzado de futbol usando API-Sports/API-Football. Sin esa variable, la app muestra el aviso y no inventa estadisticas.
 `API_SPORTS_LAST_MATCHES=20` define la muestra de resultados para forma, goles, BTTS y tendencia Over/Under. `API_SPORTS_DETAIL_MATCHES=6` limita las llamadas caras de corners, tarjetas, posesion y remates para cuidar el cupo gratis de API-Sports. Si algun dia usas un plan pagado, puedes agregar `API_SPORTS_ALLOW_HIGH_DETAIL=true` para permitir mas detalle.
+`API_SPORTS_SEASONS=2024,2023,2022` queda asi por defecto porque el plan gratis de API-Sports limita el acceso historico a esas temporadas. Para datos 2025/2026 actualizados hace falta un plan con acceso a esas temporadas.
 
 ## Supabase
 
