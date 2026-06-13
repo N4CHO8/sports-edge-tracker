@@ -43,43 +43,75 @@ async function supabaseFetch(path, options = {}) {
 
 function demoPayload(capturedAt) {
   const now = Date.now();
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  const ufcTime = now + 4 * 86400000;
+  const footballTime = now + 2 * 86400000;
+  const basketballTime = now + 86400000;
   const events = [
     {
-      source_event_id: `demo-ufc-${new Date().toISOString().slice(0, 10)}`,
+      source_event_id: `demo-ufc-main-${dateStamp}`,
       sport: "ufc",
-      league: "UFC",
+      league: "UFC Fight Night",
       home_name: "Peleador A",
       away_name: "Peleador B",
-      start_time: new Date(now + 4 * 86400000).toISOString(),
-      commence_time: new Date(now + 4 * 86400000).toISOString(),
+      start_time: new Date(ufcTime).toISOString(),
       source: "demo"
     },
     {
-      source_event_id: `demo-football-${new Date().toISOString().slice(0, 10)}`,
+      source_event_id: `demo-ufc-co-main-${dateStamp}`,
+      sport: "ufc",
+      league: "UFC Fight Night",
+      home_name: "Peleador C",
+      away_name: "Peleador D",
+      start_time: new Date(ufcTime + 45 * 60000).toISOString(),
+      source: "demo"
+    },
+    {
+      source_event_id: `demo-football-1-${dateStamp}`,
       sport: "football",
       league: "Premier League",
       home_name: "Equipo Local",
       away_name: "Equipo Visita",
-      start_time: new Date(now + 2 * 86400000).toISOString(),
-      commence_time: new Date(now + 2 * 86400000).toISOString(),
+      start_time: new Date(footballTime).toISOString(),
       source: "demo"
     },
     {
-      source_event_id: `demo-basketball-${new Date().toISOString().slice(0, 10)}`,
+      source_event_id: `demo-football-2-${dateStamp}`,
+      sport: "football",
+      league: "Premier League",
+      home_name: "Equipo Norte",
+      away_name: "Equipo Sur",
+      start_time: new Date(footballTime + 2 * 3600000).toISOString(),
+      source: "demo"
+    },
+    {
+      source_event_id: `demo-basketball-1-${dateStamp}`,
       sport: "basketball",
       league: "NBA",
       home_name: "Basket Local",
       away_name: "Basket Visita",
-      start_time: new Date(now + 86400000).toISOString(),
-      commence_time: new Date(now + 86400000).toISOString(),
+      start_time: new Date(basketballTime).toISOString(),
+      source: "demo"
+    },
+    {
+      source_event_id: `demo-basketball-2-${dateStamp}`,
+      sport: "basketball",
+      league: "NBA",
+      home_name: "Canasta Este",
+      away_name: "Canasta Oeste",
+      start_time: new Date(basketballTime + 3 * 3600000).toISOString(),
       source: "demo"
     }
   ];
 
   const odds = [
     { source_event_id: events[0].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Peleador B", odds_decimal: 2.35, captured_at: capturedAt },
-    { source_event_id: events[1].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Equipo Local", odds_decimal: 1.92, captured_at: capturedAt },
-    { source_event_id: events[2].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Basket Visita", odds_decimal: 2.55, captured_at: capturedAt }
+    { source_event_id: events[0].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Peleador A", odds_decimal: 1.62, captured_at: capturedAt },
+    { source_event_id: events[1].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Peleador C", odds_decimal: 2.7, captured_at: capturedAt },
+    { source_event_id: events[2].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Equipo Local", odds_decimal: 1.92, captured_at: capturedAt },
+    { source_event_id: events[3].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Equipo Sur", odds_decimal: 2.15, captured_at: capturedAt },
+    { source_event_id: events[4].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Basket Visita", odds_decimal: 2.55, captured_at: capturedAt },
+    { source_event_id: events[5].source_event_id, bookmaker: "DemoBook", market: "h2h", selection: "Canasta Este", odds_decimal: 1.78, captured_at: capturedAt }
   ];
 
   return { events, odds };

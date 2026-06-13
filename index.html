@@ -3,17 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sports Edge Tracker</title>
+    <title>Todo al Verde</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <header class="topbar">
-      <div>
-        <p class="eyebrow">UFC · Futbol · Basquetbol</p>
-        <h1>Sports Edge Tracker</h1>
+      <div class="brand-block">
+        <p class="eyebrow">UFC / Futbol / Basquetbol</p>
+        <h1>Todo al Verde</h1>
+        <p class="subtitle">Carteleras, jornadas y cuotas agrupadas para revisar antes de apostar.</p>
       </div>
-      <button id="refreshButton" class="primary-button" type="button">
-        <span class="button-icon" aria-hidden="true">↻</span>
+      <button id="refreshButton" class="primary-button" type="button" title="Traer datos nuevos">
+        <span class="button-icon" aria-hidden="true">R</span>
         Actualizar datos
       </button>
     </header>
@@ -29,22 +30,26 @@
           <strong id="lastUpdated">Sin datos</strong>
         </div>
         <div>
-          <span class="label">Modo</span>
+          <span class="label">Origen</span>
           <strong id="modeText">Detectando</strong>
         </div>
       </section>
 
       <section class="metrics-grid">
         <article>
-          <span class="metric-label">Eventos</span>
+          <span class="metric-label">Grupos</span>
+          <strong id="groupsCount">0</strong>
+        </article>
+        <article>
+          <span class="metric-label">Peleas / partidos</span>
           <strong id="eventsCount">0</strong>
         </article>
         <article>
-          <span class="metric-label">Snapshots de cuotas</span>
+          <span class="metric-label">Cuotas guardadas</span>
           <strong id="oddsCount">0</strong>
         </article>
         <article>
-          <span class="metric-label">Mejor senal</span>
+          <span class="metric-label">Mejor cuota</span>
           <strong id="bestSignal">-</strong>
         </article>
       </section>
@@ -58,28 +63,26 @@
         </div>
         <label class="search-box">
           <span>Buscar</span>
-          <input id="searchInput" type="search" placeholder="Equipo, peleador o liga" />
+          <input id="searchInput" type="search" placeholder="Cartelera, equipo, peleador o liga" />
         </label>
       </section>
 
-      <section class="table-wrap" aria-label="Eventos deportivos">
-        <table>
-          <thead>
-            <tr>
-              <th>Deporte</th>
-              <th>Evento</th>
-              <th>Inicio</th>
-              <th>Mercado</th>
-              <th>Mejor cuota</th>
-              <th>Prob. implicita</th>
-              <th>Senal</th>
-            </tr>
-          </thead>
-          <tbody id="eventsBody"></tbody>
-        </table>
-        <div id="emptyState" class="empty-state">
-          Presiona Actualizar datos para cargar la primera captura.
-        </div>
+      <section class="workspace">
+        <aside class="group-panel" aria-label="Carteleras y jornadas">
+          <div class="panel-heading">
+            <span class="label">Agrupado por dia</span>
+            <strong>Carteleras / jornadas</strong>
+          </div>
+          <div id="groupsList" class="groups-list"></div>
+          <div id="groupsEmpty" class="empty-state">
+            Presiona Actualizar datos para cargar la primera captura.
+          </div>
+        </aside>
+
+        <section class="detail-panel" aria-label="Detalle de eventos">
+          <div id="detailHeader" class="detail-header"></div>
+          <div id="detailBody" class="detail-body"></div>
+        </section>
       </section>
     </main>
 
