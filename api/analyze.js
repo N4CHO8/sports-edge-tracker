@@ -75,6 +75,26 @@ function pastDate(daysBack) {
   return date;
 }
 
+function recentSeasons() {
+  const currentYear = new Date().getUTCFullYear();
+  return Array.from({ length: 6 }, (_, index) => currentYear - index);
+}
+
+function uniqueFixtures(fixtures) {
+  const seen = new Set();
+  return fixtures.filter((fixture) => {
+    const id = fixture.fixture?.id;
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
+function isOfficialFootballFixture(fixture) {
+  const leagueName = String(fixture.league?.name ?? "").toLowerCase();
+  return !leagueName.includes("friendly");
+}
+
 async function recentFootballFixtures(teamId, wantedMatches) {
   try {
     return await apiSportsFetch("fixtures", { team: teamId, last: wantedMatches });
@@ -83,13 +103,23 @@ async function recentFootballFixtures(teamId, wantedMatches) {
   }
 
   const lookbackDays = Number(process.env.API_SPORTS_LOOKBACK_DAYS || 1460);
-  const fixtures = await apiSportsFetch("fixtures", {
-    team: teamId,
-    from: formatIsoDate(pastDate(lookbackDays)),
-    to: formatIsoDate(new Date())
-  });
+  const allFixtures = [];
+  for (const season of recentSeasons()) {
+    const fixtures = await apiSportsFetch("fixtures", {
+      team: teamId,
+      season,
+      from: formatIsoDate(pastDate(lookbackDays)),
+      to: formatIsoDate(new Date())
+    });
+    allFixtures.push(...fixtures);
+    const completed = uniqueFixtures(allFixtures)
+      .filter(isOfficialFootballFixture)
+      .filter((item) => ["FT", "AET", "PEN"].includes(item.fixture?.status?.short));
+    if (completed.length >= wantedMatches) break;
+  }
 
-  return fixtures
+  return uniqueFixtures(allFixtures)
+    .filter(isOfficialFootballFixture)
     .sort((a, b) => new Date(b.fixture?.date ?? 0) - new Date(a.fixture?.date ?? 0))
     .slice(0, wantedMatches);
 }
