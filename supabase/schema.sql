@@ -46,6 +46,7 @@ revoke all on table public.refresh_runs from anon, authenticated;
 revoke all on table public.events from anon, authenticated;
 revoke all on table public.odds_snapshots from anon, authenticated;
 
+grant usage on schema public to service_role;
 grant all on table public.refresh_runs to service_role;
 grant all on table public.events to service_role;
 grant all on table public.odds_snapshots to service_role;
