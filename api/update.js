@@ -38,7 +38,8 @@ async function supabaseFetch(path, options = {}) {
     throw new Error(`Supabase ${response.status}: ${body}`);
   }
 
-  return response.status === 204 ? null : response.json();
+  const body = await response.text();
+  return body.trim() ? JSON.parse(body) : null;
 }
 
 async function fetchOddsApi(capturedAt) {
