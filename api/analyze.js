@@ -398,6 +398,10 @@ export default async function handler(request, response) {
     const saved = await saveAnalysis(event, analysis);
     return send(response, { analysis: saved, cached: false });
   } catch (error) {
+    console.error("analyze_error", {
+      message: error?.message,
+      stack: error?.stack?.split("\n").slice(0, 3).join(" | ")
+    });
     return send(response, { error: error.message }, 500);
   }
 }
