@@ -110,8 +110,16 @@ function oddsForEvent(event) {
 
 function getBestOdd(event) {
   const rows = latestOddsForEvent(event);
-  const moneylineRows = rows.filter((odd) => odd.market === "h2h");
+  const moneylineRows = rows.filter((odd) => odd.market === "h2h" && isSummarySelection(event, odd.selection));
   return moneylineRows[0] ?? rows[0] ?? null;
+}
+
+function isSummarySelection(event, selection) {
+  return !(event.sport === "ufc" && normalizeSelection(selection) === "draw");
+}
+
+function normalizeSelection(value) {
+  return String(value ?? "").trim().toLowerCase();
 }
 
 function average(values) {
@@ -135,7 +143,7 @@ function formatMovement(value) {
 
 function marketStatsForEvent(event) {
   const rows = oddsForEvent(event).sort((a, b) => new Date(a.captured_at ?? 0) - new Date(b.captured_at ?? 0));
-  const latestRows = latestOddsForEvent(event).filter((odd) => odd.market === "h2h");
+  const latestRows = latestOddsForEvent(event).filter((odd) => odd.market === "h2h" && isSummarySelection(event, odd.selection));
   const selections = Array.from(new Set(latestRows.map((odd) => odd.selection).filter(Boolean)));
   const selectionStats = selections.map((selection) => {
     const latestAverage = averageOddsForSelection(latestRows, selection);
